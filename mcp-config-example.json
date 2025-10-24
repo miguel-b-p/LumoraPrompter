@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lumora-prompter": {
+      "command": "node",
+      "args": [
+        "/caminho/absoluto/para/LumoraPrompter/dist/index.js"
+      ],
+      "env": {},
+      "disabled": false
+    }
+  }
+}

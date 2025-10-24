@@ -1,0 +1,31 @@
+{
+  "name": "mcp-lumora-prompter",
+  "version": "2.0.0",
+  "description": "MCP server for meta-optimization of prompts using advanced prompting techniques",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "prompt-optimization",
+    "ai",
+    "model-context-protocol"
+  ],
+  "author": "Lumora Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
