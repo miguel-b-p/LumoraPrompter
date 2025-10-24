@@ -3,6 +3,8 @@
  * 
  * CRITICAL CHANGE: Now generates META-INSTRUCTIONS instead of ready-made prompts
  * The AI calling this MCP must CONSTRUCT its own prompt based on the instructions
+ * 
+ * Enhanced with quality metrics and few-shot examples
  */
 
 import type { OptimizationRequest, OptimizationResult } from './types.js';
@@ -10,18 +12,21 @@ import { RequestAnalyzer } from './analyzer.js';
 import { TechniqueSelector } from './technique-selector.js';
 import { MetaInstructionBuilder } from './meta-instruction-builder.js';
 import { PromptFormatter } from './formatter.js'; // Keep for legacy justification
+import { QualityEvaluator } from './quality-metrics.js';
 
 export class PromptOptimizer {
   private analyzer: RequestAnalyzer;
   private selector: TechniqueSelector;
   private metaBuilder: MetaInstructionBuilder;
   private formatter: PromptFormatter; // Legacy for justification only
+  private qualityEvaluator: QualityEvaluator;
   
   constructor() {
     this.analyzer = new RequestAnalyzer();
     this.selector = new TechniqueSelector();
     this.metaBuilder = new MetaInstructionBuilder();
     this.formatter = new PromptFormatter();
+    this.qualityEvaluator = new QualityEvaluator();
   }
   
   /**
@@ -44,16 +49,33 @@ export class PromptOptimizer {
     // Step 4: Generate justification (legacy compatibility)
     const justification = this.formatter.buildJustification(techniques, analysis);
     
-    // Step 5: Assemble final result with META-INSTRUCTIONS
+    // Step 5: Calculate quality metrics
+    const qualityScore = this.qualityEvaluator.evaluateQuality(
+      metaInstructions,
+      analysis,
+      techniques
+    );
+    
+    // Step 6: Get few-shot examples
+    const fewShotExamples = this.metaBuilder.getFewShotExamples(analysis.taskType);
+    
+    // Step 7: Assemble final result with META-INSTRUCTIONS
     return {
       analysis: {
         originalRequest: request.user_request,
         taskType: analysis.taskType,
         identifiedObjective: analysis.mainObjective,
-        appliedTechniques: techniques.map(t => t.technique)
+        appliedTechniques: techniques.map(t => t.technique),
+        detectedDomain: analysis.detectedDomain
       },
       metaInstructions,
-      technicalJustification: justification
+      technicalJustification: justification,
+      qualityScore: {
+        overall: qualityScore.overall,
+        confidence: qualityScore.confidence,
+        breakdown: qualityScore.breakdown
+      },
+      fewShotExamples
     };
   }
   

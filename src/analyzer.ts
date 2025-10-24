@@ -1,13 +1,21 @@
 /**
  * Request analyzer using RE2 (Read Twice) methodology
+ * Enhanced with domain detection and intent analysis
  */
 
 import type { AnalysisResult, TaskType, ComplexityLevel } from './types.js';
+import { DomainMatcher } from './domain-templates.js';
 
 export class RequestAnalyzer {
+  private domainMatcher: DomainMatcher;
+  
+  constructor() {
+    this.domainMatcher = new DomainMatcher();
+  }
   
   /**
    * Analyzes a user request using RE2 methodology
+   * Now includes domain detection and intent analysis
    */
   analyze(userRequest: string, context?: string): AnalysisResult {
     // ETAPA 1: PRIMEIRA LEITURA
@@ -37,12 +45,23 @@ export class RequestAnalyzer {
   
   /**
    * Second reading: Deep analysis and refinement
+   * Enhanced with domain detection and intent analysis
    */
   private secondReading(userRequest: string, firstReading: any): AnalysisResult {
     const mainObjective = this.identifyMainObjective(userRequest, firstReading);
     const implicitContext = this.extractImplicitContext(userRequest, firstReading);
     const targetAudience = this.identifyAudience(userRequest, firstReading);
     const suggestedIQ = this.suggestIQLevel(firstReading.complexityLevel);
+    
+    // NEW: Domain detection
+    const domainTemplate = this.domainMatcher.matchDomain(
+      userRequest,
+      firstReading.keywords,
+      firstReading.taskType
+    );
+    
+    // NEW: Intent analysis
+    const intentAnalysis = this.analyzeIntent(userRequest, firstReading);
     
     return {
       taskType: firstReading.taskType,
@@ -51,7 +70,9 @@ export class RequestAnalyzer {
       implicitContext,
       targetAudience,
       suggestedIQ,
-      keywords: firstReading.keywords
+      keywords: firstReading.keywords,
+      detectedDomain: domainTemplate?.domain,
+      intentAnalysis
     };
   }
   
@@ -226,5 +247,67 @@ export class RequestAnalyzer {
     };
     
     return iqMap[complexity];
+  }
+  
+  /**
+   * NEW: Analyzes user intent beyond surface request
+   */
+  private analyzeIntent(userRequest: string, firstReading: any): string {
+    const lowerRequest = userRequest.toLowerCase();
+    const intents: string[] = [];
+    
+    // Learning intent
+    if (lowerRequest.match(/\b(learn|understand|explain|teach|how does|what is|why)\b/)) {
+      intents.push('educational - wants to understand concepts');
+    }
+    
+    // Problem-solving intent
+    if (lowerRequest.match(/\b(solve|fix|debug|error|problem|issue|help)\b/)) {
+      intents.push('problem-solving - needs solution to specific issue');
+    }
+    
+    // Building intent
+    if (lowerRequest.match(/\b(create|build|implement|develop|make|generate)\b/)) {
+      intents.push('construction - wants to build something new');
+    }
+    
+    // Optimization intent
+    if (lowerRequest.match(/\b(improve|optimize|refactor|better|faster|enhance)\b/)) {
+      intents.push('optimization - wants to improve existing solution');
+    }
+    
+    // Comparison intent
+    if (lowerRequest.match(/\b(compare|vs|versus|difference|better|which|choose)\b/)) {
+      intents.push('decision-making - needs comparison to make choice');
+    }
+    
+    // Validation intent
+    if (lowerRequest.match(/\b(review|validate|check|correct|verify|test)\b/)) {
+      intents.push('validation - wants confirmation or review');
+    }
+    
+    // Architecture/Design intent
+    if (lowerRequest.match(/\b(architecture|design|structure|pattern|approach|strategy)\b/)) {
+      intents.push('design - needs architectural guidance');
+    }
+    
+    // Quick solution intent
+    if (lowerRequest.length < 50 && !lowerRequest.includes('?')) {
+      intents.push('quick-answer - expects concise response');
+    }
+    
+    // Deep analysis intent
+    if (userRequest.length > 200 || lowerRequest.match(/\b(comprehensive|detailed|complete|full|thorough)\b/)) {
+      intents.push('deep-dive - expects comprehensive analysis');
+    }
+    
+    // Production intent
+    if (lowerRequest.match(/\b(production|deploy|live|real|actual|enterprise)\b/)) {
+      intents.push('production-ready - needs high-quality, production-grade solution');
+    }
+    
+    return intents.length > 0 
+      ? `User intends to: ${intents.join('; ')}`
+      : 'General inquiry requiring standard approach';
   }
 }

@@ -1,5 +1,6 @@
 /**
- * Types and interfaces for MCP-Lumora_Prompter
+ * Types and interfaces for MCP-Lumora_Prompter v3.0
+ * Now includes domain templates, few-shot examples, and quality metrics
  */
 
 export type TaskType = 
@@ -46,6 +47,8 @@ export interface AnalysisResult {
   targetAudience: string;
   suggestedIQ: number;
   keywords: string[];
+  detectedDomain?: string; // NEW: Detected specialized domain
+  intentAnalysis?: string; // NEW: Deeper intent understanding
 }
 
 export interface TechniqueApplication {
@@ -86,7 +89,7 @@ export interface MetaInstructionFramework {
 }
 
 /**
- * Legacy interface - kept for backwards compatibility during transition
+ * Main optimization result interface
  */
 export interface OptimizationResult {
   analysis: {
@@ -94,6 +97,7 @@ export interface OptimizationResult {
     taskType: TaskType;
     identifiedObjective: string;
     appliedTechniques: string[];
+    detectedDomain?: string;
   };
   metaInstructions: MetaInstructionFramework;
   technicalJustification: {
@@ -103,4 +107,10 @@ export interface OptimizationResult {
     }>;
     expectedImprovements: string[];
   };
+  qualityScore?: {
+    overall: number;
+    confidence: string;
+    breakdown: Record<string, number>;
+  };
+  fewShotExamples?: string; // NEW: Examples to guide AI
 }

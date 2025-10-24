@@ -1,7 +1,7 @@
 {
   "name": "mcp-lumora-prompter",
-  "version": "2.0.0",
-  "description": "MCP server for meta-optimization of prompts using advanced prompting techniques",
+  "version": "3.0.0",
+  "description": "MCP server for meta-optimization of prompts with domain-specific templates, quality metrics, and few-shot examples",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

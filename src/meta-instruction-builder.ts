@@ -3,22 +3,41 @@
  * 
  * CRITICAL: This does NOT generate ready-made prompts
  * It generates INSTRUCTIONS for the AI to think and construct its own optimized prompt
+ * 
+ * Enhanced with domain-specific templates and few-shot examples
  */
 
 import type { AnalysisResult, TechniqueApplication, MetaInstructionFramework, TaskType } from './types.js';
 import { TECHNIQUES } from './techniques.js';
+import { DomainMatcher, type DomainTemplate } from './domain-templates.js';
+import { FewShotSelector } from './few-shot-examples.js';
 
 export class MetaInstructionBuilder {
+  private domainMatcher: DomainMatcher;
+  private fewShotSelector: FewShotSelector;
+  private domainTemplate: DomainTemplate | null = null;
+  
+  constructor() {
+    this.domainMatcher = new DomainMatcher();
+    this.fewShotSelector = new FewShotSelector();
+  }
   
   /**
    * Builds a complete meta-instruction framework
    * Returns INSTRUCTIONS, not a prompt
+   * Enhanced with domain-specific guidance
    */
   buildMetaInstructions(
     originalRequest: string,
     analysis: AnalysisResult,
     techniques: TechniqueApplication[]
   ): MetaInstructionFramework {
+    // Detect domain template for enhanced guidance
+    this.domainTemplate = this.domainMatcher.matchDomain(
+      originalRequest,
+      analysis.keywords,
+      analysis.taskType
+    );
     
     return {
       type: 'meta_instructions',
@@ -222,16 +241,28 @@ export class MetaInstructionBuilder {
   
   /**
    * Gets context requirements
+   * Enhanced with domain-specific hints
    */
   private getContextRequirements(analysis: AnalysisResult): string[] {
     const requirements: string[] = [
-      `Domain: ${analysis.keywords.join(', ')}`,
+      `Domain: ${analysis.detectedDomain || analysis.keywords.join(', ')}`,
       `Complexity Level: ${analysis.complexityLevel}`,
       `Target Audience: ${analysis.targetAudience}`
     ];
     
+    // Add intent analysis
+    if (analysis.intentAnalysis) {
+      requirements.push(`Intent: ${analysis.intentAnalysis}`);
+    }
+    
     if (analysis.implicitContext.length > 0) {
       requirements.push(...analysis.implicitContext.map(c => `Context: ${c}`));
+    }
+    
+    // Add domain-specific contextual hints
+    if (this.domainTemplate) {
+      const hints = this.domainMatcher.getContextualHints(this.domainTemplate, analysis.complexityLevel);
+      requirements.push(...hints.slice(0, 3).map(h => `Domain Insight: ${h}`));
     }
     
     return requirements;
@@ -239,6 +270,7 @@ export class MetaInstructionBuilder {
   
   /**
    * Gets constraints to observe
+   * Enhanced with domain-specific pitfalls to avoid
    */
   private getConstraints(analysis: AnalysisResult, techniques: TechniqueApplication[]): string[] {
     const constraints: string[] = [];
@@ -252,6 +284,11 @@ export class MetaInstructionBuilder {
     if (analysis.complexityLevel === 'expert' || analysis.complexityLevel === 'avancado') {
       constraints.push('Solution must be optimized and production-ready');
       constraints.push('Consider edge cases and scalability');
+    }
+    
+    // Add domain-specific common pitfalls
+    if (this.domainTemplate && (analysis.complexityLevel === 'expert' || analysis.complexityLevel === 'avancado')) {
+      constraints.push(...this.domainTemplate.commonPitfalls.slice(0, 2));
     }
     
     // Add technique-specific constraints
@@ -359,5 +396,14 @@ export class MetaInstructionBuilder {
       isValid: issues.length === 0,
       issues
     };
+  }
+  
+  /**
+   * Gets few-shot examples for the task type
+   * Returns formatted examples to guide AI
+   */
+  getFewShotExamples(taskType: TaskType): string {
+    const examples = this.fewShotSelector.getExamples(taskType, 1);
+    return this.fewShotSelector.formatExamplesForOutput(examples);
   }
 }
